@@ -100,21 +100,55 @@ def plot_fronts(ax,i,lon,n,fronts):
     
 import matplotlib as mpl
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-def gridlines(ax,lon_tick,lat_tick):
-    """add gridlines to an axis. lon_tick and y_tick are gridsize and input as real numbers."""
-    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=True,
-                      x_inline=False, y_inline=False,
-                      linewidth=0.75, alpha=0.5, linestyle='--',
-                      ylocs = mpl.ticker.MultipleLocator(base=lat_tick),
-                      xlocs = mpl.ticker.MultipleLocator(base=lon_tick))
+def plot_gridlines(ax, alpha=0.75, draw_labels=False, lon_tick=np.arange(-180, 181, 60), lat_tick=np.arange(-80, -40, 10), **kwargs):
+    """
+    Add gridlines to a cartopy geo-axes.
 
-    gl.top_labels = False
-    gl.right_labels = False
-    gl.xformatter = LongitudeFormatter
-    gl.yformatter = LatitudeFormatter
+    Parameters:
+    - ax : GeoAxesSubplot
+        The cartopy geo-axes to which the gridlines will be added.
+    - lon_tick : array-like, optional
+        Longitude ticks for the gridlines. Default is np.arange(-180, 181, 60).
+    - lat_tick : array-like, optional
+        Latitude ticks for the gridlines. Default is np.arange(-70, -40, 10).
+    - **kwargs : dict, optional
+        Additional keyword arguments passed to ax.gridlines().
 
-    gl.xpadding=10
-    gl.ypadding=10
+    Returns:
+    - gl : Gridliner
+        The gridliner object for further customization.
+    """
+    # Set default longitude and latitude tick intervals if not provided
+    if lon_tick is None:
+        lon_tick = mpl.ticker.MultipleLocator(base=60)
+    if lat_tick is None:
+        lat_tick = mpl.ticker.MultipleLocator(base=10)
+    
+    # Create gridlines on the provided axis with specified parameters
+    gl = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=draw_labels,
+                      linewidth=1, alpha=alpha, linestyle='--',zorder=6,
+                      xlocs=lon_tick, ylocs=lat_tick, **kwargs)
+
+    if draw_labels:
+        # Enable top and right labels
+        gl.top_labels = True
+        gl.right_labels = True
+        
+        # Set padding for the labels
+        gl.xpadding = 10
+        gl.ypadding = 10
+        
+        # Rotate x and y labels to 0 degrees to make them horizontal
+        gl.xlabel_style = {'rotation': 0, 'zorder': 100, 'fontsize':10}
+        gl.ylabel_style = {'rotation': 0, 'zorder': 100, 'fontsize':10}
+    else:
+        # Disable x-axis labels
+        gl.xlabels_bottom = False
+        gl.xlabels_top = False
+        
+        # Disable y-axis labels
+        gl.right_labels = False
+        gl.left_labels = False
     
 # Function: update_projection
 
@@ -206,10 +240,10 @@ from smoothing_and_interp import wrap_smth_var,nan_interp
 class DatasetError(Exception):
     pass
 
-def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
-                            fronts=True,bth=[],bathym=True,sea_ice=True,
+def circular_plot_fomatting(fig,ax,ds,si=None,set_fc=True,fc='darkgrey',
+                            fronts=True,bth=None,bathym=True,sea_ice=True,
                             annotation=True,si_x=15,a_x=0.06,a_y=0.89,legend=False,
-                            leg_loc=(0.8725,0.91),extent=[180,-180,-90,-45]):
+                            leg_loc=(0.8725,0.91),extent=[180,-180,-90,-45],draw_labels=False):
     """
     Apply formatting to subplots with circular boundaries for South Polar Stereo projections.
     
@@ -270,6 +304,8 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
     extent : list of float, optional
         The projection extent in the format [E, W, S, N] (East, West, South, North).
         Default is [180, -180, -90, -45].
+    draw_labels : bool, optional
+        If True, add gridline labels to the figure. Default is True
     """
     
     alphbt = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 
@@ -281,6 +317,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
             leg_arr = [] # legend handles to be included
             leg_lab = [] # legend labels  to be included
             circular_boundary(a)
+            plot_gridlines(a,draw_labels=draw_labels)
             a.set_extent(extent,crs=crs)
             a.add_feature(cfeature.LAND,zorder=9,facecolor="#ededed",)
             a.coastlines(zorder=10,color="k") # shows continental coastline
@@ -292,7 +329,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
             if fronts:
                 wrap_data, wrap_lon = wrap_data_func(ds.adt.mean('season'))
                 frnt = a.contour(wrap_lon,ds.lat.data,wrap_data,levels=[-0.58,-0.1],colors='k',
-                          linewidths=1.5,linestyles=['-'],labels='PF & SAF',transform=crs,)
+                          linewidths=1.5,linestyles=['-'],labels='PF & SAF',transform=crs,zorder=7)
                 #frnt = ds.adt.mean('season').plot.contour(x='lon',transform=crs,ax=a,levels=[-0.58,-0.1],colors='k',linewidths=1.5,linestyles=['-'],labels='PF & SAF')
                 leg_arr += frnt, 
                 leg_lab += "PF,SAF",
@@ -303,7 +340,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
 
                 wrap_data, wrap_lon = wrap_data_func(bth.elevation)
                 b = a.contour(wrap_lon,bth.lat.data,wrap_data,transform=crs,levels=[-3e3,-2e3,-1e3],
-                          colors='#4c4c4c',linestyles=['-'],linewidths=[0.7],alphas=[0.9])
+                          colors='#4c4c4c',linestyles=['-'],linewidths=[0.7],alphas=[0.9],zorder=7)
                 leg_arr += b,
                 leg_lab += "1,2,3km isobaths",
 
@@ -312,7 +349,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
                     raise DatasetError("define xarray sea ice (si) dataset with a sea ice concentration (sic) variable")
 
                 ice = wrap_smth_var((si.sic - si_x).__abs__().idxmin(dim='lat').isel(season=int(i%4)),nx=20
-                           ).plot(ax=a,c='w',transform=crs,lw=1.25)
+                           ).plot(ax=a,c='w',transform=crs,lw=1.25,zorder=7)
                 leg_arr += ice[0],
                 leg_lab += f"sic ({si_x}%)",
 
@@ -336,7 +373,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
             if fronts:
                 wrap_data, wrap_lon = wrap_data_func(ds.adt.mean('season'))
                 frnt = a.contour(wrap_lon,ds.lat.data,wrap_data,levels=[-0.58,-0.1],colors='k',
-                                 linewidths=1.5,linestyles=['-'],labels='PF & SAF',transform=crs,)
+                                 linewidths=1.5,linestyles=['-'],labels='PF & SAF',transform=crs,zorder=7)
                 leg_arr += frnt, 
                 leg_lab += "PF,SAF",
 
@@ -346,7 +383,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
 
                 wrap_data, wrap_lon = wrap_data_func(bth.elevation)
                 b = a.contour(wrap_lon,bth.lat.data,wrap_data,transform=crs,levels=[-3e3,-2e3,-1e3],
-                          colors='#4c4c4c',linestyles=['-'],linewidths=[0.7],alphas=[0.9])
+                          colors='#4c4c4c',linestyles=['-'],linewidths=[0.7],alphas=[0.9],zorder=7)
                 leg_arr += b,
                 leg_lab += "1,2,3km isobaths",
 
@@ -355,7 +392,7 @@ def circular_plot_fomatting(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
                     raise DatasetError("define xarray sea ice (si) dataset with a sea ice concentration (sic) variable")
 
                 ice = wrap_smth_var((si.sic - si_x).__abs__().idxmin(dim='lat').isel(season=int(i%4)),nx=20
-                           ).plot(ax=a,c='w',transform=crs,lw=1.25)
+                           ).plot(ax=a,c='w',transform=crs,lw=1.25,zorder=7)
                 leg_arr += ice[0],
                 leg_lab += f"sic ({si_x}%)",
 
@@ -376,6 +413,7 @@ def circular_plot_fomatting_single_ax(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
     leg_arr = [] # legend handles to be included
     leg_lab = [] # legend labels  to be included
     circular_boundary(a)
+    plot_gridlines(a)
     a.set_extent(extent,crs=crs)
     a.add_feature(cfeature.LAND,zorder=9,facecolor="#ededed",)
     a.coastlines(zorder=10,color="k") # shows continental coastline
@@ -387,7 +425,7 @@ def circular_plot_fomatting_single_ax(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
     if fronts:
         wrap_data, wrap_lon = wrap_data_func(ds.adt.mean('season'))
         frnt = a.contour(wrap_lon,ds.lat.data,wrap_data,levels=[-0.58,-0.1],colors='k',
-                  linewidths=1.5,linestyles=['-'],labels='PF & SAF',transform=crs,)
+                  linewidths=1.5,linestyles=['-'],labels='PF & SAF',transform=crs,zorder=7,)
         leg_arr += frnt.collections[0], 
         leg_lab += "PF,SAF",
 
@@ -396,7 +434,7 @@ def circular_plot_fomatting_single_ax(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
             raise DatasetError("define xarray bathymetry dataset with an elevation variable")
         wrap_data, wrap_lon = wrap_data_func(bth.elevation)
         b = a.contour(wrap_lon,bth.lat.data,wrap_data,transform=crs,levels=[-3e3,-2e3,-1e3],
-                  colors='#4c4c4c',linestyles=['-'],linewidths=[0.7],alphas=[0.9])
+                  colors='#4c4c4c',linestyles=['-'],linewidths=[0.7],alphas=[0.9],zorder=7)
         leg_arr += b[0],
         leg_lab += "1,2,3km isobaths",
 
@@ -405,7 +443,7 @@ def circular_plot_fomatting_single_ax(fig,ax,ds,si=[],set_fc=True,fc='darkgrey',
             raise DatasetError("define xarray sea ice (si) dataset with a sea ice concentration (sic) variable")
 
         ice = wrap_smth_var((si.sic - si_x).__abs__().idxmin(dim='lat').isel(season=int(i%4)),nx=20
-                   ).plot(ax=a,c='w',transform=crs,lw=1.25)
+                   ).plot(ax=a,c='w',transform=crs,lw=1.25,zorder=7)
         leg_arr += ice[0],
         leg_lab += f"sic ({si_x}%)",
 
@@ -712,17 +750,19 @@ def plot_bathym(ax,bth):
 #    cb.set_ticks(np.arange(0,5050,1000))
 #    cb.minorticks_off()
     cm = mpl.colors.LinearSegmentedColormap.from_list("", ['#ededed','#ededed'])
-    bth.elevation.plot.contour(x='lon',levels=[0],colors='k',linestyles=['-'],linewidths=[1.5],ax=ax)
-    bth.elevation.where(bth.elevation>0).plot(x='lon',cmap=cm,ax=ax,add_colorbar=False,)
+    bth.elevation.plot.contour(x='lon',levels=[0],colors='k',linestyles=['-'],linewidths=[1.5],ax=ax,zorder=6)
+    bth.elevation.where(bth.elevation>0).plot(x='lon',cmap=cm,ax=ax,add_colorbar=False,zorder=5)
     
     
     ax.set_xlabel('Longitude (°E)')
     ax.set_ylabel('Latitude (°N)')
     ax.set_ylim(-80,-45)
     ax.set_xticks(np.arange(-180,190,60))
-    ax.set_yticks(np.arange(-80,-42.5,5))
+    ax.set_yticks(np.arange(-80,-42.5,10))
+
+    ax.grid(c='w', linewidth=1, alpha=0.75, linestyle='--', zorder=4)
     
-    txt_kwrgs=dict(fontsize=20,c='#f5f5f5',weight='bold',zorder=3)
+    txt_kwrgs=dict(fontsize=20,c='#f5f5f5',weight='bold',zorder=5)
     ax.text(x=-165,y=-71,s='RS',  **txt_kwrgs)
     ax.text(x=-152,y=-60,s='PAR', **txt_kwrgs)
     ax.text(x=-106,y=-67,s='ABS', **txt_kwrgs)

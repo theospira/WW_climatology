@@ -66,7 +66,7 @@ def load_data(ds_path='/home/theospira/notebooks/projects/WW_climatology/data/hy
         ds = ds.rename({'time':'season'})
 
     # convert depth to +ve
-    ds[['thcc','ww_cd','up_bd','lw_bd']] = ds[['thcc','ww_cd','up_bd','lw_bd']]*-1
+    #ds[['thcc','ww_cd','up_bd','lw_bd']] = ds[['thcc','ww_cd','up_bd','lw_bd']]*-1
     
     # load ssh (adt) data
     ssh = xr.open_dataset('/home/theospira/notebooks/data/Copernicus/ssh_monthly_climatology_2004-2021.nc')
@@ -125,7 +125,7 @@ def load_data(ds_path='/home/theospira/notebooks/projects/WW_climatology/data/hy
     # remove any data that is "on ground" or above sea level
     ds = ds.where(ds.bth < 0)
     
-    ww_vars = ['ww_cd','ww_ct','up_bd','lw_bd','ww_n2','mld','thcc','ww_sa','sig_c']
+    ww_vars = ['ww_cd','ww_ct','up_bd','lw_bd','ww_n2','mld','thcc','ww_sa','sig_c','ww_type']
     # select WW data that is south of SAF 
     ds[ww_vars] = ds[ww_vars].where(ds.lat<=(ds.adt - -0.1).__abs__().idxmin(dim='lat'))
     
@@ -154,6 +154,8 @@ def load_data(ds_path='/home/theospira/notebooks/projects/WW_climatology/data/hy
     # cut at smoothed latitudinal boundary of WW extent
     ds_ww = ds[ww_vars].copy()
     for i in list(ds_ww.data_vars.keys()):
+        if i == 'ww_type':
+            continue
         ds_ww[i] = wrap_smth_var(ds_ww[i])
         ds_ww[i] = nan_interp(ds_ww[i])
         ds_ww[i] = ww_ext_bounding(ds_ww[i],ds)   
