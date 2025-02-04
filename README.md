@@ -7,8 +7,7 @@ This repository contains notebooks and scripts related to the Antarctic Winter W
 Associated works include:
 
 - published paper: [The observed spatiotemporal variability of Antarctic Winter Water - Spira et al. (2024)](https://doi.org/10.1029/2024JC021017)
-- dataset: [18 years of hydrographic profiles in the Southern Ocean - Spira et al. (2023)](10.5281/zenodo.10258137)
-- pre-print paper can be found here: [The observed spatiotemporal variability of Antarctic Winter Water - Spira et al. (2024)](10.22541/essoar.170985965.57932318/v1)
+- dataset: [18 years of hydrographic profiles in the Southern Ocean - Spira et al. (2023)](https://zenodo.org/records/10258138)
 
 ## Project Structure
 
